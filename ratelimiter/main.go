@@ -23,36 +23,24 @@ type RateLimiter struct {
 }
 
 func (rl RateLimiter) Allow(domain string) bool {
-	fmt.Printf("domain \"%s\" is requesting\n", domain)
 	now := time.Now().Unix()
 	v, ok := rl.limiter[domain]
 	defer func() {
 		rl.limiter[domain] = v
 	}()
 
-	if !ok {
-		fmt.Printf("added to rate limiter\n")
+	if !ok || rl.ShouldReset(v, now) {
 		v = Limiter{
-			numOfReqs:   0,
+			numOfReqs:   1,
 			windowStart: now,
 		}
+		return true
 	}
 
-	fmt.Printf("count:\t\t\t%d\nnow:\t\t\t%d\nstart:\t\t\t%d\n", v.numOfReqs, now, v.windowStart)
 	if rl.ReachedLimit(v, now) {
-		fmt.Printf("reached the limit\n")
 		return false
 	}
 
-	if rl.ShouldReset(v, now) {
-		fmt.Printf("domain threshold renewal\n")
-		v = Limiter{
-			numOfReqs:   0,
-			windowStart: now,
-		}
-	}
-
-	fmt.Printf("is requesting\n")
 	v.numOfReqs += 1
 
 	return true
